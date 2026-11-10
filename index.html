@@ -20,7 +20,7 @@
     <header class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
         <div class="flex items-center space-x-3">
             <div class="bg-amber-500 p-2.5 rounded-xl text-slate-950 font-bold shadow-lg shadow-amber-500/20">
-                <i class="fa-solid me-1 fa-coins text-lg"></i> 1M
+                <i class="fa-solid fa-coins text-lg"></i>
             </div>
             <div>
                 <h1 class="font-bold text-lg leading-tight text-amber-400">Coin Ledger App</h1>
@@ -62,21 +62,27 @@
                         Masuk Sistem
                     </button>
                 </form>
-
-                <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
-                    <p class="font-semibold text-slate-300">Akun Bawaan System:</p>
-                    <p><i class="fa-solid fa-user-shield text-amber-400 me-1"></i> Admin: <span class="font-mono text-slate-200">admin / admin123</span></p>
-                    <p><i class="fa-solid fa-user me-1"></i> Karyawan: <span class="font-mono text-slate-200">karyawan1 / 123456</span></p>
-                </div>
             </div>
         </div>
 
         <!-- APP DASHBOARD VIEW -->
         <div id="appView" class="hidden space-y-6">
 
-            <!-- ADMIN PANEL -->
-            <div id="adminPanel" class="hidden space-y-6">
-                <!-- PANEL PENGATURAN HARGA -->
+            <!-- ADMIN NAVIGATION TABS -->
+            <div id="adminNavTabs" class="hidden flex space-x-2 border-b border-slate-800 pb-3">
+                <button onclick="switchAdminTab('dashboard')" id="tabBtnDashboard" class="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold transition">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> Dashboard & Harga
+                </button>
+                <button onclick="switchAdminTab('karyawan')" id="tabBtnKaryawan" class="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold transition">
+                    <i class="fa-solid fa-users-gear mr-1"></i> Data Karyawan
+                </button>
+                <button onclick="switchAdminTab('riwayat')" id="tabBtnRiwayat" class="px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold transition">
+                    <i class="fa-solid fa-list-check mr-1"></i> Riwayat Pembukuan Pendapatan
+                </button>
+            </div>
+
+            <!-- ADMIN TAB 1: DASHBOARD & HARGA -->
+            <div id="adminTabDashboard" class="space-y-6">
                 <div class="glass p-6 rounded-2xl border border-amber-500/20 space-y-4">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
@@ -96,11 +102,29 @@
                     </div>
                 </div>
 
-                <!-- PANEL CRUD DATA KARYAWAN -->
+                <!-- STATS CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-amber-500">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Harga Aktif / 1M Koin</span>
+                        <h3 id="statHargaAct" class="text-2xl font-bold text-amber-400">Rp 0</h3>
+                    </div>
+                    <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-blue-500">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Total Koin Terinput</span>
+                        <h3 id="statTotalKoin" class="text-2xl font-bold text-blue-400">0</h3>
+                    </div>
+                    <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-emerald-500">
+                        <span class="text-xs text-slate-400 uppercase font-semibold">Total Pendapatan (IDR)</span>
+                        <h3 id="statTotalIDR" class="text-2xl font-bold text-emerald-400">Rp 0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADMIN TAB 2: DATA KARYAWAN -->
+            <div id="adminTabKaryawan" class="hidden space-y-6">
                 <div class="glass p-6 rounded-2xl border border-blue-500/20 space-y-4">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                         <h2 class="text-lg font-bold text-blue-400 flex items-center gap-2">
-                            <i class="fa-solid fa-users-gear"></i> Kelola Data Karyawan (CRUD)
+                            <i class="fa-solid fa-users-gear"></i> Kelola Data Karyawan
                         </h2>
                         <button onclick="openUserModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1">
                             <i class="fa-solid fa-plus"></i> Tambah Karyawan
@@ -126,24 +150,36 @@
                 </div>
             </div>
 
-            <!-- STATS CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-amber-500">
-                    <span class="text-xs text-slate-400 uppercase font-semibold">Harga Aktif / 1M Koin</span>
-                    <h3 id="statHargaAct" class="text-2xl font-bold text-amber-400">Rp 0</h3>
-                </div>
-                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-blue-500">
-                    <span class="text-xs text-slate-400 uppercase font-semibold">Total Koin Terinput</span>
-                    <h3 id="statTotalKoin" class="text-2xl font-bold text-blue-400">0</h3>
-                </div>
-                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-emerald-500">
-                    <span class="text-xs text-slate-400 uppercase font-semibold">Total Pendapatan (IDR)</span>
-                    <h3 id="statTotalIDR" class="text-2xl font-bold text-emerald-400">Rp 0</h3>
+            <!-- ADMIN TAB 3 / UMUM: RIWAYAT PEMBUKUAN -->
+            <div id="adminTabRiwayat" class="space-y-6">
+                <div class="glass p-6 rounded-2xl space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-amber-400"></i> Riwayat Pembukuan Pendapatan
+                        </h2>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Tanggal & Waktu</th>
+                                    <th class="p-3">Karyawan</th>
+                                    <th class="p-3">Jumlah Koin</th>
+                                    <th class="p-3">Harga / 1M</th>
+                                    <th class="p-3 rounded-r-xl text-right">Total Pendapatan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionLogTable" class="divide-y divide-slate-800/50">
+                                <!-- Rows injected dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- INPUT FORM KARYAWAN -->
-            <div class="glass p-6 rounded-2xl space-y-4">
+            <!-- INPUT FORM KARYAWAN (Hanya Tampil untuk Karyawan) -->
+            <div id="karyawanInputSection" class="glass p-6 rounded-2xl space-y-4">
                 <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center gap-2">
                     <i class="fa-solid fa-square-plus text-amber-400"></i> Input Pendapatan Koin Harian
                 </h2>
@@ -164,32 +200,6 @@
                         <i class="fa-solid fa-paper-plane me-1"></i> Simpan Transaksi
                     </button>
                 </form>
-            </div>
-
-            <!-- LOG TRANSAKSI TABLE -->
-            <div class="glass p-6 rounded-2xl space-y-4">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-amber-400"></i> Riwayat Pembukuan Pendapatan
-                    </h2>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-950/80 text-xs uppercase text-slate-400">
-                            <tr>
-                                <th class="p-3 rounded-l-xl">Tanggal & Waktu</th>
-                                <th class="p-3">Karyawan</th>
-                                <th class="p-3">Jumlah Koin</th>
-                                <th class="p-3">Harga / 1M</th>
-                                <th class="p-3 rounded-r-xl text-right">Total Pendapatan</th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactionLogTable" class="divide-y divide-slate-800/50">
-                            <!-- Rows injected dynamically -->
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
         </div>
