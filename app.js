@@ -1,5 +1,5 @@
 // URL Google Apps Script Web App Kanjeng
-const APPS_SCRIPT_URL = ""; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTdludJpnWGBa_LRSvweehvbLTU4JagcacoaN9zlmz_uxarhpuKpq2zbSoORwN4wNq/exec"; 
 
 let currentHargaPer1M = localStorage.getItem("harga_per_1m") ? parseFloat(localStorage.getItem("harga_per_1m")) : 15000;
 let currentUser = null;
