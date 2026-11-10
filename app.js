@@ -1,0 +1,245 @@
+// URL Google Apps Script Web App Kanjeng
+const APPS_SCRIPT_URL = ""; 
+
+let currentHargaPer1M = localStorage.getItem("harga_per_1m") ? parseFloat(localStorage.getItem("harga_per_1m")) : 15000;
+let currentUser = null;
+let transactions = JSON.parse(localStorage.getItem("coin_transactions") || "[]");
+
+let usersList = JSON.parse(localStorage.getItem("users_list") || "null") || [
+    { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
+    { username: "karyawan1", password: "123456", role: "karyawan", nama: "Karyawan Shift 1" },
+    { username: "karyawan2", password: "123456", role: "karyawan", nama: "Karyawan Shift 2" }
+];
+
+document.addEventListener("DOMContentLoaded", () => {
+    updateStatsDisplay();
+    renderTransactions();
+    renderUsersTable();
+});
+
+function handleLogin(e) {
+    e.preventDefault();
+    const userIn = document.getElementById("loginUsername").value.trim().toLowerCase();
+    const passIn = document.getElementById("loginPassword").value.trim();
+
+    const found = usersList.find(u => u.username.toLowerCase() === userIn && u.password === passIn);
+    if (found) {
+        currentUser = found;
+        document.getElementById("loginView").classList.add("hidden");
+        document.getElementById("appView").classList.remove("hidden");
+        document.getElementById("userStatus").classList.remove("hidden");
+        document.getElementById("userStatus").classList.add("flex");
+
+        document.getElementById("userName").innerText = currentUser.nama || currentUser.username;
+        document.getElementById("userRole").innerText = currentUser.role;
+
+        if (currentUser.role === "admin") {
+            document.getElementById("adminPanel").classList.remove("hidden");
+            document.getElementById("hargaPer1MInput").value = currentHargaPer1M;
+        } else {
+            document.getElementById("adminPanel").classList.add("hidden");
+        }
+    } else {
+        alert("Username atau Password salah!");
+    }
+}
+
+function logout() {
+    currentUser = null;
+    document.getElementById("loginView").classList.remove("hidden");
+    document.getElementById("appView").classList.add("hidden");
+    document.getElementById("userStatus").classList.add("hidden");
+}
+
+function updateHargaJual() {
+    const val = parseFloat(document.getElementById("hargaPer1MInput").value);
+    if (val && val > 0) {
+        currentHargaPer1M = val;
+        localStorage.setItem("harga_per_1m", currentHargaPer1M);
+        updateStatsDisplay();
+        calculateLiveTotal();
+        alert("Harga jual per 1M koin berhasil diperbarui menjadi Rp " + currentHargaPer1M.toLocaleString('id-ID'));
+    }
+}
+
+function calculateLiveTotal() {
+    const koin = parseFloat(document.getElementById("inputKoin").value) || 0;
+    const total = (koin / 1000000) * currentHargaPer1M;
+    document.getElementById("liveTotalCalculated").innerText = "Rp " + total.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+}
+
+function handleTransactionSubmit(e) {
+    e.preventDefault();
+    const koin = parseFloat(document.getElementById("inputKoin").value);
+
+    if (!koin || koin <= 0) return;
+
+    const totalRupiah = (koin / 1000000) * currentHargaPer1M;
+
+    const newTx = {
+        action: "addTransaction",
+        tanggal: new Date().toLocaleString('id-ID'),
+        karyawan: currentUser ? (currentUser.nama || currentUser.username) : "Karyawan 1",
+        koin: koin,
+        harga1M: currentHargaPer1M,
+        total: totalRupiah
+    };
+
+    transactions.unshift(newTx);
+    localStorage.setItem("coin_transactions", JSON.stringify(transactions));
+
+    if (APPS_SCRIPT_URL !== "") {
+        fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newTx)
+        }).catch(err => console.error("API Error:", err));
+    }
+
+    document.getElementById("inputKoin").value = "";
+    calculateLiveTotal();
+    renderTransactions();
+    updateStatsDisplay();
+}
+
+function renderTransactions() {
+    const tbody = document.getElementById("transactionLogTable");
+    tbody.innerHTML = "";
+
+    transactions.forEach(tx => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 border-b border-slate-800/50";
+        row.innerHTML = `
+            <td class="p-3 font-mono text-xs text-slate-400">${tx.tanggal}</td>
+            <td class="p-3 font-semibold text-slate-200">${tx.karyawan}</td>
+            <td class="p-3 font-mono text-blue-400">${tx.koin.toLocaleString('id-ID')}</td>
+            <td class="p-3 font-mono text-amber-400">Rp ${tx.harga1M.toLocaleString('id-ID')}</td>
+            <td class="p-3 font-mono font-bold text-emerald-400 text-right">Rp ${tx.total.toLocaleString('id-ID')}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateStatsDisplay() {
+    document.getElementById("statHargaAct").innerText = "Rp " + currentHargaPer1M.toLocaleString('id-ID');
+
+    const totalKoin = transactions.reduce((acc, curr) => acc + curr.koin, 0);
+    const totalIDR = transactions.reduce((acc, curr) => acc + curr.total, 0);
+
+    document.getElementById("statTotalKoin").innerText = totalKoin.toLocaleString('id-ID');
+    document.getElementById("statTotalIDR").innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+}
+
+// --- LOGIKA CRUD DATA KARYAWAN ---
+
+function renderUsersTable() {
+    const tbody = document.getElementById("userTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    usersList.forEach(u => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-slate-800/40 border-b border-slate-800/50";
+        row.innerHTML = `
+            <td class="p-3 font-semibold text-slate-200">${u.nama || '-'}</td>
+            <td class="p-3 font-mono text-slate-300">${u.username}</td>
+            <td class="p-3 font-mono text-slate-400">${u.password}</td>
+            <td class="p-3"><span class="px-2 py-0.5 text-xs rounded-full bg-slate-800 ${u.role === 'admin' ? 'text-amber-400 border border-amber-500/30' : 'text-blue-400 border border-blue-500/30'}">${u.role}</span></td>
+            <td class="p-3 text-right space-x-2">
+                <button onclick="editUser('${u.username}')" class="text-blue-400 hover:text-blue-300 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button onclick="deleteUser('${u.username}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function openUserModal(isEdit = false) {
+    document.getElementById("userModal").classList.remove("hidden");
+    document.getElementById("modalEditMode").value = isEdit ? "true" : "false";
+    document.getElementById("modalTitle").innerText = isEdit ? "Edit Data Karyawan" : "Tambah Karyawan Baru";
+    if (!isEdit) {
+        document.getElementById("modalNama").value = "";
+        document.getElementById("modalUsername").value = "";
+        document.getElementById("modalUsername").readOnly = false;
+        document.getElementById("modalPassword").value = "";
+        document.getElementById("modalRole").value = "karyawan";
+    }
+}
+
+function closeUserModal() {
+    document.getElementById("userModal").classList.add("hidden");
+}
+
+function editUser(username) {
+    const user = usersList.find(u => u.username === username);
+    if (user) {
+        openUserModal(true);
+        document.getElementById("modalNama").value = user.nama || "";
+        document.getElementById("modalUsername").value = user.username;
+        document.getElementById("modalUsername").readOnly = true;
+        document.getElementById("modalPassword").value = user.password;
+        document.getElementById("modalRole").value = user.role;
+    }
+}
+
+function handleSaveUser(e) {
+    e.preventDefault();
+    const isEdit = document.getElementById("modalEditMode").value === "true";
+    const nama = document.getElementById("modalNama").value.trim();
+    const username = document.getElementById("modalUsername").value.trim();
+    const password = document.getElementById("modalPassword").value.trim();
+    const role = document.getElementById("modalRole").value;
+
+    const payload = {
+        action: isEdit ? "updateUser" : "createUser",
+        nama, username, password, role
+    };
+
+    if (isEdit) {
+        const idx = usersList.findIndex(u => u.username === username);
+        if (idx !== -1) usersList[idx] = payload;
+    } else {
+        if (usersList.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+            alert("Username sudah terdaftar!");
+            return;
+        }
+        usersList.push(payload);
+    }
+
+    localStorage.setItem("users_list", JSON.stringify(usersList));
+    renderUsersTable();
+    closeUserModal();
+
+    if (APPS_SCRIPT_URL !== "") {
+        fetch(APPS_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("API Error:", err));
+    }
+}
+
+function deleteUser(username) {
+    if (username === currentUser.username) {
+        alert("Tidak bisa menghapus akun yang sedang dipakai!");
+        return;
+    }
+
+    if (confirm(`Yakin ingin menghapus karyawan '${username}'?`)) {
+        usersList = usersList.filter(u => u.username !== username);
+        localStorage.setItem("users_list", JSON.stringify(usersList));
+        renderUsersTable();
+
+        if (APPS_SCRIPT_URL !== "") {
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "deleteUser", username: username })
+            }).catch(err => console.error("API Error:", err));
+        }
+    }
+}
