@@ -1,4 +1,8 @@
-// URL Google Apps Script Web App Kanjeng
+// ==========================================
+// APP.JS: LOGIKA FRONTEND PEMBUKUAN KOIN
+// ==========================================
+
+// Masukkan URL Web App Google Apps Script Kanjeng di sini (berakhiran /exec)
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTApJPOcQom_Yz57V0-G-FxBkVtqAMHs2fhK-JxFP2JoxLkd-aDVxqySyjhkWbZuSM/exec"; 
 
 let currentHargaPer1M = 15000;
@@ -10,11 +14,13 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchInitialData();
 });
 
+// 1. Ambil Data Awal (Harga Aktif & Daftar Users dari Google Sheets)
 function fetchInitialData() {
     if (APPS_SCRIPT_URL === "" || APPS_SCRIPT_URL.includes("ANDA_DISINI")) {
+        // Fallback data lokal jika URL belum dipasang
         usersList = [
             { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
-            { username: "karyawan1", password: "123456", role: "karyawan", nama: "Obet" }
+            { username: "obet", password: "123456", role: "karyawan", nama: "Obet" }
         ];
         updateStatsDisplay();
         renderTransactions();
@@ -41,12 +47,14 @@ function fetchInitialData() {
         });
 }
 
+// 2. Logika Login Multi-Role (Admin / Karyawan)
 function handleLogin(e) {
     e.preventDefault();
     const userIn = document.getElementById("loginUsername").value.trim().toLowerCase();
     const passIn = document.getElementById("loginPassword").value.trim();
 
-    const found = usersList.find(u => u.username.toLowerCase() === userIn && u.password === passIn);
+    const found = usersList.find(u => String(u.username).trim().toLowerCase() === userIn && String(u.password).trim() === passIn);
+    
     if (found) {
         currentUser = found;
         document.getElementById("loginView").classList.add("hidden");
@@ -58,14 +66,14 @@ function handleLogin(e) {
         document.getElementById("userRole").innerText = currentUser.role;
 
         if (currentUser.role === "admin") {
-            // Tampilkan navigasi tab admin, sembunyikan form input koin karyawan
+            // Admin: Tampilkan tab navigasi admin, sembunyikan form input koin
             document.getElementById("adminNavTabs").classList.remove("hidden");
             document.getElementById("adminNavTabs").classList.add("flex");
             document.getElementById("karyawanInputSection").classList.add("hidden");
             document.getElementById("hargaPer1MInput").value = currentHargaPer1M;
             switchAdminTab('dashboard');
         } else {
-            // Karyawan: sembunyikan menu admin, tampilkan form input koin & riwayat
+            // Karyawan: Sembunyikan navigasi admin, tampilkan riwayat & form input koin harian
             document.getElementById("adminNavTabs").classList.add("hidden");
             document.getElementById("adminTabDashboard").classList.add("hidden");
             document.getElementById("adminTabKaryawan").classList.add("hidden");
@@ -77,6 +85,7 @@ function handleLogin(e) {
     }
 }
 
+// 3. Navigasi Tab Khusus Admin
 function switchAdminTab(tabName) {
     const tabDashboard = document.getElementById("adminTabDashboard");
     const tabKaryawan = document.getElementById("adminTabKaryawan");
@@ -111,6 +120,7 @@ function logout() {
     location.reload();
 }
 
+// 4. Update Harga Jual oleh Admin (Masuk ke sheet 'Harga')
 function updateHargaJual() {
     const val = parseFloat(document.getElementById("hargaPer1MInput").value);
     if (val && val > 0) {
@@ -145,6 +155,7 @@ function calculateLiveTotal() {
     }
 }
 
+// 5. Simpan Transaksi Koin Harian oleh Karyawan (Masuk ke sheet 'Transaksi')
 function handleTransactionSubmit(e) {
     e.preventDefault();
     const koin = parseFloat(document.getElementById("inputKoin").value);
@@ -213,6 +224,7 @@ function updateStatsDisplay() {
     if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
+// 6. CRUD Data Karyawan (Masuk ke sheet 'Users')
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
