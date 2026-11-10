@@ -1,26 +1,28 @@
 // ==========================================
-// APP.JS: MURNI DARI GOOGLE SHEETS (TANPA CACHE LOKAL)
+// APP.JS: SINKRONISASI MURNI DARI GOOGLE SHEETS & FILTER TANGGAL
 // ==========================================
 
-// Masukkan URL Web App Google Apps Script Kanjeng di sini
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpKlYvrPDw8x2Qjo9GsMxasiPu73ox3MSeH83fWkvojUsXUGzQVG-5OybU8F2jaFxl/exec"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
-let transactions = []; // Kosong di awal, murni ditarik dari Google Sheets
+let allTransactions = []; // Data mentah dari Google Sheets
+let transactions = [];    // Data aktif yang ditampilkan / difilter
 let usersList = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     fetchInitialData();
 });
 
-// 1. Ambil Data Murni dari Google Sheets saat Halaman Dibuka
+// 1. Ambil Data Murni dari Google Sheets
 function fetchInitialData() {
     if (APPS_SCRIPT_URL === "" || APPS_SCRIPT_URL.includes("ANDA_DISINI")) {
         usersList = [
             { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
             { username: "obet", password: "123456", role: "karyawan", nama: "Obet" }
         ];
+        allTransactions = [];
+        transactions = [...allTransactions];
         updateStatsDisplay();
         renderTransactions();
         renderUsersTable();
@@ -34,7 +36,8 @@ function fetchInitialData() {
                 if (data.hargaAktif) currentHargaPer1M = data.hargaAktif;
                 if (data.users && data.users.length > 0) usersList = data.users;
                 if (data.transactions) {
-                    transactions = data.transactions; // Murni mengambil dari Google Sheets
+                    allTransactions = data.transactions;
+                    transactions = [...allTransactions];
                 }
             }
             updateStatsDisplay();
@@ -49,6 +52,7 @@ function fetchInitialData() {
         });
 }
 
+// 2. Logika Login Multi-Role
 function handleLogin(e) {
     e.preventDefault();
     const userIn = document.getElementById("loginUsername").value.trim().toLowerCase();
@@ -84,6 +88,7 @@ function handleLogin(e) {
     }
 }
 
+// 3. Navigasi Tab Admin
 function switchAdminTab(tabName) {
     const tabDashboard = document.getElementById("adminTabDashboard");
     const tabKaryawan = document.getElementById("adminTabKaryawan");
@@ -118,6 +123,7 @@ function logout() {
     location.reload();
 }
 
+// 4. Update Harga Jual
 function updateHargaJual() {
     const val = parseFloat(document.getElementById("hargaPer1MInput").value);
     if (val && val > 0) {
@@ -152,7 +158,7 @@ function calculateLiveTotal() {
     }
 }
 
-// 2. Kirim Transaksi & Ambil Ulang Data Terbaru dari Spreadsheet
+// 5. Kirim Transaksi & Sinkronisasi Ulang
 function handleTransactionSubmit(e) {
     e.preventDefault();
     const koin = parseFloat(document.getElementById("inputKoin").value);
@@ -170,8 +176,8 @@ function handleTransactionSubmit(e) {
         total: totalRupiah
     };
 
-    // Masukkan sementara ke array agar respons instan di layar
-    transactions.unshift(newTx);
+    allTransactions.unshift(newTx);
+    transactions = [...allTransactions];
     document.getElementById("inputKoin").value = "";
     calculateLiveTotal();
     renderTransactions();
@@ -185,10 +191,36 @@ function handleTransactionSubmit(e) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newTx)
         }).then(() => {
-            // Sinkronisasi ulang otomatis setelah 1.5 detik
             setTimeout(fetchInitialData, 1500);
         }).catch(err => console.error("API Error:", err));
     }
+}
+
+// 6. Filter Riwayat Berdasarkan Tanggal
+function filterTransactions() {
+    const startDate = document.getElementById("filterStartDate").value;
+    const endDate = document.getElementById("filterEndDate").value;
+
+    transactions = allTransactions.filter(tx => {
+        let parts = tx.tanggal.split(',')[0].trim().split('/');
+        if (parts.length === 3) {
+            let txDateFormatted = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            if (startDate && txDateFormatted < startDate) return false;
+            if (endDate && txDateFormatted > endDate) return false;
+        }
+        return true;
+    });
+
+    renderTransactions();
+    updateStatsDisplay();
+}
+
+function resetFilter() {
+    document.getElementById("filterStartDate").value = "";
+    document.getElementById("filterEndDate").value = "";
+    transactions = [...allTransactions];
+    renderTransactions();
+    updateStatsDisplay();
 }
 
 function renderTransactions() {
@@ -197,7 +229,7 @@ function renderTransactions() {
     tbody.innerHTML = "";
 
     if (transactions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada riwayat transaksi di Google Sheets</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada riwayat transaksi</td></tr>`;
         return;
     }
 
@@ -228,6 +260,7 @@ function updateStatsDisplay() {
     if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
+// 7. CRUD Data Karyawan
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
