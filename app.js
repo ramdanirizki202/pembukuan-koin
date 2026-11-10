@@ -1,5 +1,5 @@
 // URL Google Apps Script Web App Kanjeng
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbydVvZKm_C35uV-AkMnCc_reUjwT0SplRU4-6UH-EJG_e2O3ZODenyf8LnzZQ-XM36l/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTApJPOcQom_Yz57V0-G-FxBkVtqAMHs2fhK-JxFP2JoxLkd-aDVxqySyjhkWbZuSM/exec"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
