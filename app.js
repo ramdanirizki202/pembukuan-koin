@@ -3,7 +3,7 @@
 // ==========================================
 
 // Masukkan URL Web App Google Apps Script Kanjeng di sini (berakhiran /exec)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTApJPOcQom_Yz57V0-G-FxBkVtqAMHs2fhK-JxFP2JoxLkd-aDVxqySyjhkWbZuSM/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyWqZU6ftenfUP1S-LQ3TSQQbIMwoqOcSkYd3_IixhnNAtbRyI39AzXl7jDTJ9VhSLp/exec"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
