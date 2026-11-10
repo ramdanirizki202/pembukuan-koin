@@ -1,21 +1,47 @@
-// URL Google Apps Script Web App Kanjeng
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpKjrvY_C7G1BnI_ghqamdb2M1yljwh4dY0cU9GBo/dev"; 
+// Masukkan URL Web App Google Apps Script Kanjeng di sini
+const APPS_SCRIPT_URL = "URL_WEB_APP_GOOGLE_APPS_SCRIPT_ANDA_DISINI"; 
 
-let currentHargaPer1M = localStorage.getItem("harga_per_1m") ? parseFloat(localStorage.getItem("harga_per_1m")) : 15000;
+let currentHargaPer1M = 15000;
 let currentUser = null;
 let transactions = JSON.parse(localStorage.getItem("coin_transactions") || "[]");
-
-let usersList = JSON.parse(localStorage.getItem("users_list") || "null") || [
-    { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
-    { username: "karyawan1", password: "123456", role: "karyawan", nama: "Karyawan Shift 1" },
-    { username: "karyawan2", password: "123456", role: "karyawan", nama: "Karyawan Shift 2" }
-];
+let usersList = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-    updateStatsDisplay();
-    renderTransactions();
-    renderUsersTable();
+    fetchInitialData();
 });
+
+// 1. Ambil Data Awal (Harga Aktif & Daftar Users dari Google Sheets)
+function fetchInitialData() {
+    if (APPS_SCRIPT_URL === "" || APPS_SCRIPT_URL.includes("ANDA_DISINI")) {
+        // Fallback jika URL belum dipasang
+        usersList = [
+            { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
+            { username: "karyawan1", password: "123456", role: "karyawan", nama: "Obet" }
+        ];
+        updateStatsDisplay();
+        renderTransactions();
+        renderUsersTable();
+        return;
+    }
+
+    fetch(APPS_SCRIPT_URL + "?action=getInitialData")
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "success") {
+                if (data.hargaAktif) currentHargaPer1M = data.hargaAktif;
+                if (data.users && data.users.length > 0) usersList = data.users;
+            }
+            updateStatsDisplay();
+            renderTransactions();
+            renderUsersTable();
+        })
+        .catch(err => {
+            console.error("Gagal memuat data dari Spreadsheet:", err);
+            updateStatsDisplay();
+            renderTransactions();
+            renderUsersTable();
+        });
+}
 
 function handleLogin(e) {
     e.preventDefault();
@@ -46,19 +72,34 @@ function handleLogin(e) {
 
 function logout() {
     currentUser = null;
-    document.getElementById("loginView").classList.remove("hidden");
-    document.getElementById("appView").classList.add("hidden");
-    document.getElementById("userStatus").classList.add("hidden");
+    document.getElementById("loginView").classList.add("hidden");
+    document.getElementById("appView").classList.remove("hidden"); // reset view
+    location.reload();
 }
 
+// 2. Update Harga Jual oleh Admin (Masuk ke sheet 'Harga')
 function updateHargaJual() {
     const val = parseFloat(document.getElementById("hargaPer1MInput").value);
     if (val && val > 0) {
         currentHargaPer1M = val;
-        localStorage.setItem("harga_per_1m", currentHargaPer1M);
         updateStatsDisplay();
         calculateLiveTotal();
         alert("Harga jual per 1M koin berhasil diperbarui menjadi Rp " + currentHargaPer1M.toLocaleString('id-ID'));
+
+        const payload = {
+            action: "updateHarga",
+            harga1M: currentHargaPer1M,
+            updatedBy: currentUser ? currentUser.nama : "Admin"
+        };
+
+        if (APPS_SCRIPT_URL !== "") {
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("Error update harga:", err));
+        }
     }
 }
 
@@ -68,6 +109,7 @@ function calculateLiveTotal() {
     document.getElementById("liveTotalCalculated").innerText = "Rp " + total.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
+// 3. Simpan Transaksi Koin (Masuk ke sheet 'Transaksi')
 function handleTransactionSubmit(e) {
     e.preventDefault();
     const koin = parseFloat(document.getElementById("inputKoin").value);
@@ -79,7 +121,7 @@ function handleTransactionSubmit(e) {
     const newTx = {
         action: "addTransaction",
         tanggal: new Date().toLocaleString('id-ID'),
-        karyawan: currentUser ? (currentUser.nama || currentUser.username) : "Karyawan 1",
+        karyawan: currentUser ? (currentUser.nama || currentUser.username) : "Karyawan",
         koin: koin,
         harga1M: currentHargaPer1M,
         total: totalRupiah
@@ -101,10 +143,12 @@ function handleTransactionSubmit(e) {
     calculateLiveTotal();
     renderTransactions();
     updateStatsDisplay();
+    alert("Transaksi pendapatan koin berhasil disimpan!");
 }
 
 function renderTransactions() {
     const tbody = document.getElementById("transactionLogTable");
+    if (!tbody) return;
     tbody.innerHTML = "";
 
     transactions.forEach(tx => {
@@ -122,17 +166,19 @@ function renderTransactions() {
 }
 
 function updateStatsDisplay() {
-    document.getElementById("statHargaAct").innerText = "Rp " + currentHargaPer1M.toLocaleString('id-ID');
+    const elHarga = document.getElementById("statHargaAct");
+    if (elHarga) elHarga.innerText = "Rp " + currentHargaPer1M.toLocaleString('id-ID');
 
     const totalKoin = transactions.reduce((acc, curr) => acc + curr.koin, 0);
     const totalIDR = transactions.reduce((acc, curr) => acc + curr.total, 0);
 
-    document.getElementById("statTotalKoin").innerText = totalKoin.toLocaleString('id-ID');
-    document.getElementById("statTotalIDR").innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+    const elKoin = document.getElementById("statTotalKoin");
+    const elIDR = document.getElementById("statTotalIDR");
+    if (elKoin) elKoin.innerText = totalKoin.toLocaleString('id-ID');
+    if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
-// --- LOGIKA CRUD DATA KARYAWAN ---
-
+// 4. CRUD Karyawan (Masuk ke sheet 'Users')
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
@@ -208,7 +254,6 @@ function handleSaveUser(e) {
         usersList.push(payload);
     }
 
-    localStorage.setItem("users_list", JSON.stringify(usersList));
     renderUsersTable();
     closeUserModal();
 
@@ -223,14 +268,13 @@ function handleSaveUser(e) {
 }
 
 function deleteUser(username) {
-    if (username === currentUser.username) {
+    if (currentUser && username === currentUser.username) {
         alert("Tidak bisa menghapus akun yang sedang dipakai!");
         return;
     }
 
     if (confirm(`Yakin ingin menghapus karyawan '${username}'?`)) {
         usersList = usersList.filter(u => u.username !== username);
-        localStorage.setItem("users_list", JSON.stringify(usersList));
         renderUsersTable();
 
         if (APPS_SCRIPT_URL !== "") {
