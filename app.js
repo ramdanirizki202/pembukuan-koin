@@ -1,23 +1,22 @@
 // ==========================================
-// APP.JS: LOGIKA FRONTEND PEMBUKUAN KOIN
+// APP.JS: MURNI DARI GOOGLE SHEETS (TANPA CACHE LOKAL)
 // ==========================================
 
-// Masukkan URL Web App Google Apps Script Kanjeng di sini (berakhiran /exec)
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyWqZU6ftenfUP1S-LQ3TSQQbIMwoqOcSkYd3_IixhnNAtbRyI39AzXl7jDTJ9VhSLp/exec"; 
+// Masukkan URL Web App Google Apps Script Kanjeng di sini
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpKlYvrPDw8x2Qjo9GsMxasiPu73ox3MSeH83fWkvojUsXUGzQVG-5OybU8F2jaFxl/exec"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
-let transactions = JSON.parse(localStorage.getItem("coin_transactions") || "[]");
+let transactions = []; // Kosong di awal, murni ditarik dari Google Sheets
 let usersList = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     fetchInitialData();
 });
 
-// 1. Ambil Data Awal (Harga Aktif & Daftar Users dari Google Sheets)
+// 1. Ambil Data Murni dari Google Sheets saat Halaman Dibuka
 function fetchInitialData() {
     if (APPS_SCRIPT_URL === "" || APPS_SCRIPT_URL.includes("ANDA_DISINI")) {
-        // Fallback data lokal jika URL belum dipasang
         usersList = [
             { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
             { username: "obet", password: "123456", role: "karyawan", nama: "Obet" }
@@ -34,6 +33,9 @@ function fetchInitialData() {
             if (data.status === "success") {
                 if (data.hargaAktif) currentHargaPer1M = data.hargaAktif;
                 if (data.users && data.users.length > 0) usersList = data.users;
+                if (data.transactions) {
+                    transactions = data.transactions; // Murni mengambil dari Google Sheets
+                }
             }
             updateStatsDisplay();
             renderTransactions();
@@ -47,7 +49,6 @@ function fetchInitialData() {
         });
 }
 
-// 2. Logika Login Multi-Role (Admin / Karyawan)
 function handleLogin(e) {
     e.preventDefault();
     const userIn = document.getElementById("loginUsername").value.trim().toLowerCase();
@@ -66,14 +67,12 @@ function handleLogin(e) {
         document.getElementById("userRole").innerText = currentUser.role;
 
         if (currentUser.role === "admin") {
-            // Admin: Tampilkan tab navigasi admin, sembunyikan form input koin
             document.getElementById("adminNavTabs").classList.remove("hidden");
             document.getElementById("adminNavTabs").classList.add("flex");
             document.getElementById("karyawanInputSection").classList.add("hidden");
             document.getElementById("hargaPer1MInput").value = currentHargaPer1M;
             switchAdminTab('dashboard');
         } else {
-            // Karyawan: Sembunyikan navigasi admin, tampilkan riwayat & form input koin harian
             document.getElementById("adminNavTabs").classList.add("hidden");
             document.getElementById("adminTabDashboard").classList.add("hidden");
             document.getElementById("adminTabKaryawan").classList.add("hidden");
@@ -85,7 +84,6 @@ function handleLogin(e) {
     }
 }
 
-// 3. Navigasi Tab Khusus Admin
 function switchAdminTab(tabName) {
     const tabDashboard = document.getElementById("adminTabDashboard");
     const tabKaryawan = document.getElementById("adminTabKaryawan");
@@ -120,7 +118,6 @@ function logout() {
     location.reload();
 }
 
-// 4. Update Harga Jual oleh Admin (Masuk ke sheet 'Harga')
 function updateHargaJual() {
     const val = parseFloat(document.getElementById("hargaPer1MInput").value);
     if (val && val > 0) {
@@ -155,7 +152,7 @@ function calculateLiveTotal() {
     }
 }
 
-// 5. Simpan Transaksi Koin Harian oleh Karyawan (Masuk ke sheet 'Transaksi')
+// 2. Kirim Transaksi & Ambil Ulang Data Terbaru dari Spreadsheet
 function handleTransactionSubmit(e) {
     e.preventDefault();
     const koin = parseFloat(document.getElementById("inputKoin").value);
@@ -173,8 +170,13 @@ function handleTransactionSubmit(e) {
         total: totalRupiah
     };
 
+    // Masukkan sementara ke array agar respons instan di layar
     transactions.unshift(newTx);
-    localStorage.setItem("coin_transactions", JSON.stringify(transactions));
+    document.getElementById("inputKoin").value = "";
+    calculateLiveTotal();
+    renderTransactions();
+    updateStatsDisplay();
+    alert("Transaksi pendapatan koin berhasil disimpan!");
 
     if (APPS_SCRIPT_URL !== "") {
         fetch(APPS_SCRIPT_URL, {
@@ -182,14 +184,11 @@ function handleTransactionSubmit(e) {
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newTx)
+        }).then(() => {
+            // Sinkronisasi ulang otomatis setelah 1.5 detik
+            setTimeout(fetchInitialData, 1500);
         }).catch(err => console.error("API Error:", err));
     }
-
-    document.getElementById("inputKoin").value = "";
-    calculateLiveTotal();
-    renderTransactions();
-    updateStatsDisplay();
-    alert("Transaksi pendapatan koin berhasil disimpan!");
 }
 
 function renderTransactions() {
@@ -197,15 +196,20 @@ function renderTransactions() {
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    if (transactions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Belum ada riwayat transaksi di Google Sheets</td></tr>`;
+        return;
+    }
+
     transactions.forEach(tx => {
         const row = document.createElement("tr");
         row.className = "hover:bg-slate-800/40 border-b border-slate-800/50";
         row.innerHTML = `
             <td class="p-3 font-mono text-xs text-slate-400">${tx.tanggal}</td>
             <td class="p-3 font-semibold text-slate-200">${tx.karyawan}</td>
-            <td class="p-3 font-mono text-blue-400">${tx.koin.toLocaleString('id-ID')}</td>
-            <td class="p-3 font-mono text-amber-400">Rp ${tx.harga1M.toLocaleString('id-ID')}</td>
-            <td class="p-3 font-mono font-bold text-emerald-400 text-right">Rp ${tx.total.toLocaleString('id-ID')}</td>
+            <td class="p-3 font-mono text-blue-400">${Number(tx.koin).toLocaleString('id-ID')}</td>
+            <td class="p-3 font-mono text-amber-400">Rp ${Number(tx.harga1M).toLocaleString('id-ID')}</td>
+            <td class="p-3 font-mono font-bold text-emerald-400 text-right">Rp ${Number(tx.total).toLocaleString('id-ID')}</td>
         `;
         tbody.appendChild(row);
     });
@@ -215,8 +219,8 @@ function updateStatsDisplay() {
     const elHarga = document.getElementById("statHargaAct");
     if (elHarga) elHarga.innerText = "Rp " + currentHargaPer1M.toLocaleString('id-ID');
 
-    const totalKoin = transactions.reduce((acc, curr) => acc + curr.koin, 0);
-    const totalIDR = transactions.reduce((acc, curr) => acc + curr.total, 0);
+    const totalKoin = transactions.reduce((acc, curr) => acc + (parseFloat(curr.koin) || 0), 0);
+    const totalIDR = transactions.reduce((acc, curr) => acc + (parseFloat(curr.total) || 0), 0);
 
     const elKoin = document.getElementById("statTotalKoin");
     const elIDR = document.getElementById("statTotalIDR");
@@ -224,7 +228,6 @@ function updateStatsDisplay() {
     if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
-// 6. CRUD Data Karyawan (Masuk ke sheet 'Users')
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
