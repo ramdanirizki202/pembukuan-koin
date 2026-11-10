@@ -1,5 +1,5 @@
 // Masukkan URL Web App Google Apps Script Kanjeng di sini
-const APPS_SCRIPT_URL = "URL_WEB_APP_GOOGLE_APPS_SCRIPT_ANDA_DISINI"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpKjrvY_C7G1BnI_ghqamdb2M1yljwh4dY0cU9GBo/dev"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
