@@ -1,13 +1,13 @@
 // ==========================================
-// APP.JS: SINKRONISASI MURNI DARI GOOGLE SHEETS & FILTER TANGGAL
+// APP.JS: SINKRONISASI MURNI GOOGLE SHEETS, FILTER & PDF
 // ==========================================
 
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpKlYvrPDw8x2Qjo9GsMxasiPu73ox3MSeH83fWkvojUsXUGzQVG-5OybU8F2jaFxl/exec"; 
 
 let currentHargaPer1M = 15000;
 let currentUser = null;
-let allTransactions = []; // Data mentah dari Google Sheets
-let transactions = [];    // Data aktif yang ditampilkan / difilter
+let allTransactions = []; 
+let transactions = [];    
 let usersList = [];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -223,6 +223,62 @@ function resetFilter() {
     updateStatsDisplay();
 }
 
+// 7. Unduh Laporan PDF
+function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("LAPORAN PEMBUKUAN PENDAPATAN KOIN", 14, 20);
+
+    const startDate = document.getElementById("filterStartDate").value;
+    const endDate = document.getElementById("filterEndDate").value;
+    let periodText = "Periode: Semua Waktu";
+    if (startDate && endDate) {
+        periodText = `Periode: ${startDate} s/d ${endDate}`;
+    } else if (startDate) {
+        periodText = `Periode: Mulai ${startDate}`;
+    } else if (endDate) {
+        periodText = `Periode: Sampai ${endDate}`;
+    }
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(periodText, 14, 28);
+    doc.text("Dicetak pada: " + new Date().toLocaleString('id-ID'), 14, 34);
+
+    const tableData = transactions.map(tx => [
+        tx.tanggal,
+        tx.karyawan,
+        Number(tx.koin).toLocaleString('id-ID'),
+        "Rp " + Number(tx.harga1M).toLocaleString('id-ID'),
+        "Rp " + Number(tx.total).toLocaleString('id-ID')
+    ]);
+
+    const totalKoinFiltered = transactions.reduce((acc, curr) => acc + (parseFloat(curr.koin) || 0), 0);
+    const totalIDRFiltered = transactions.reduce((acc, curr) => acc + (parseFloat(curr.total) || 0), 0);
+
+    doc.autoTable({
+        startY: 40,
+        head: [["Tanggal & Waktu", "Nama Karyawan", "Jumlah Koin", "Harga / 1M", "Total Pendapatan"]],
+        body: tableData,
+        foot: [[
+            "TOTAL", 
+            "-", 
+            totalKoinFiltered.toLocaleString('id-ID'), 
+            "-", 
+            "Rp " + totalIDRFiltered.toLocaleString('id-ID', { maximumFractionDigits: 2 })
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [217, 119, 6] }, 
+        footStyles: { fillColor: [30, 41, 59], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 4 }
+    });
+
+    doc.save(`Laporan_Pembukuan_Koin_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 function renderTransactions() {
     const tbody = document.getElementById("transactionLogTable");
     if (!tbody) return;
@@ -260,7 +316,7 @@ function updateStatsDisplay() {
     if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
-// 7. CRUD Data Karyawan
+// 8. CRUD Data Karyawan
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
