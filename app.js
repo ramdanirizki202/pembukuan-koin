@@ -1,4 +1,4 @@
-// Masukkan URL Web App Google Apps Script Kanjeng di sini
+// URL Google Apps Script Web App Kanjeng
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpKjrvY_C7G1BnI_ghqamdb2M1yljwh4dY0cU9GBo/dev"; 
 
 let currentHargaPer1M = 15000;
@@ -10,10 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchInitialData();
 });
 
-// 1. Ambil Data Awal (Harga Aktif & Daftar Users dari Google Sheets)
 function fetchInitialData() {
     if (APPS_SCRIPT_URL === "" || APPS_SCRIPT_URL.includes("ANDA_DISINI")) {
-        // Fallback jika URL belum dipasang
         usersList = [
             { username: "admin", password: "admin123", role: "admin", nama: "Administrator System" },
             { username: "karyawan1", password: "123456", role: "karyawan", nama: "Obet" }
@@ -60,24 +58,59 @@ function handleLogin(e) {
         document.getElementById("userRole").innerText = currentUser.role;
 
         if (currentUser.role === "admin") {
-            document.getElementById("adminPanel").classList.remove("hidden");
+            // Tampilkan navigasi tab admin, sembunyikan form input koin karyawan
+            document.getElementById("adminNavTabs").classList.remove("hidden");
+            document.getElementById("adminNavTabs").classList.add("flex");
+            document.getElementById("karyawanInputSection").classList.add("hidden");
             document.getElementById("hargaPer1MInput").value = currentHargaPer1M;
+            switchAdminTab('dashboard');
         } else {
-            document.getElementById("adminPanel").classList.add("hidden");
+            // Karyawan: sembunyikan menu admin, tampilkan form input koin & riwayat
+            document.getElementById("adminNavTabs").classList.add("hidden");
+            document.getElementById("adminTabDashboard").classList.add("hidden");
+            document.getElementById("adminTabKaryawan").classList.add("hidden");
+            document.getElementById("adminTabRiwayat").classList.remove("hidden");
+            document.getElementById("karyawanInputSection").classList.remove("hidden");
         }
     } else {
         alert("Username atau Password salah!");
     }
 }
 
+function switchAdminTab(tabName) {
+    const tabDashboard = document.getElementById("adminTabDashboard");
+    const tabKaryawan = document.getElementById("adminTabKaryawan");
+    const tabRiwayat = document.getElementById("adminTabRiwayat");
+
+    const btnDashboard = document.getElementById("tabBtnDashboard");
+    const btnKaryawan = document.getElementById("tabBtnKaryawan");
+    const btnRiwayat = document.getElementById("tabBtnRiwayat");
+
+    tabDashboard.classList.add("hidden");
+    tabKaryawan.classList.add("hidden");
+    tabRiwayat.classList.add("hidden");
+
+    btnDashboard.className = "px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold transition";
+    btnKaryawan.className = "px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold transition";
+    btnRiwayat.className = "px-4 py-2 bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-xl text-xs font-bold transition";
+
+    if (tabName === 'dashboard') {
+        tabDashboard.classList.remove("hidden");
+        btnDashboard.className = "px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold transition";
+    } else if (tabName === 'karyawan') {
+        tabKaryawan.classList.remove("hidden");
+        btnKaryawan.className = "px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold transition";
+    } else if (tabName === 'riwayat') {
+        tabRiwayat.classList.remove("hidden");
+        btnRiwayat.className = "px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-xs font-bold transition";
+    }
+}
+
 function logout() {
     currentUser = null;
-    document.getElementById("loginView").classList.add("hidden");
-    document.getElementById("appView").classList.remove("hidden"); // reset view
     location.reload();
 }
 
-// 2. Update Harga Jual oleh Admin (Masuk ke sheet 'Harga')
 function updateHargaJual() {
     const val = parseFloat(document.getElementById("hargaPer1MInput").value);
     if (val && val > 0) {
@@ -106,10 +139,12 @@ function updateHargaJual() {
 function calculateLiveTotal() {
     const koin = parseFloat(document.getElementById("inputKoin").value) || 0;
     const total = (koin / 1000000) * currentHargaPer1M;
-    document.getElementById("liveTotalCalculated").innerText = "Rp " + total.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+    const elCalc = document.getElementById("liveTotalCalculated");
+    if (elCalc) {
+        elCalc.innerText = "Rp " + total.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+    }
 }
 
-// 3. Simpan Transaksi Koin (Masuk ke sheet 'Transaksi')
 function handleTransactionSubmit(e) {
     e.preventDefault();
     const koin = parseFloat(document.getElementById("inputKoin").value);
@@ -178,7 +213,6 @@ function updateStatsDisplay() {
     if (elIDR) elIDR.innerText = "Rp " + totalIDR.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 }
 
-// 4. CRUD Karyawan (Masuk ke sheet 'Users')
 function renderUsersTable() {
     const tbody = document.getElementById("userTableBody");
     if (!tbody) return;
