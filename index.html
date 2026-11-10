@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pembukuan Pendapatan Koin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header Navigation -->
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-500 p-2.5 rounded-xl text-slate-950 font-bold shadow-lg shadow-amber-500/20">
+                <i class="fa-solid me-1 fa-coins text-lg"></i> 1M
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-amber-400">Coin Ledger App</h1>
+                <p class="text-xs text-slate-400">Pembukuan Pendapatan Koin</p>
+            </div>
+        </div>
+
+        <div id="userStatus" class="hidden items-center space-x-4">
+            <div class="text-right">
+                <span id="userName" class="font-semibold text-slate-200 block text-sm">User</span>
+                <span id="userRole" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 border border-amber-500/30 uppercase font-mono">Role</span>
+            </div>
+            <button onclick="logout()" class="p-2 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-lg transition border border-slate-700" title="Logout">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+
+        <!-- LOGIN VIEW -->
+        <div id="loginView" class="max-w-md mx-auto mt-10">
+            <div class="glass p-8 rounded-2xl shadow-2xl space-y-6">
+                <div class="text-center space-y-2">
+                    <h2 class="text-2xl font-bold text-slate-100">Selamat Datang</h2>
+                    <p class="text-sm text-slate-400">Silakan login ke akun Anda</p>
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Username</label>
+                        <input type="text" id="loginUsername" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-slate-100" placeholder="Masukkan username">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-slate-100" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20 mt-2">
+                        Masuk Sistem
+                    </button>
+                </form>
+
+                <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
+                    <p class="font-semibold text-slate-300">Akun Bawaan System:</p>
+                    <p><i class="fa-solid fa-user-shield text-amber-400 me-1"></i> Admin: <span class="font-mono text-slate-200">admin / admin123</span></p>
+                    <p><i class="fa-solid fa-user me-1"></i> Karyawan: <span class="font-mono text-slate-200">karyawan1 / 123456</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- APP DASHBOARD VIEW -->
+        <div id="appView" class="hidden space-y-6">
+
+            <!-- ADMIN PANEL -->
+            <div id="adminPanel" class="hidden space-y-6">
+                <!-- PANEL PENGATURAN HARGA -->
+                <div class="glass p-6 rounded-2xl border border-amber-500/20 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders"></i> Pengaturan Harga Jual Koin
+                        </h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Harga Jual / 1.000.000 (1M) Koin (IDR)</label>
+                            <input type="number" id="hargaPer1MInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-amber-400 font-bold focus:outline-none focus:border-amber-500" placeholder="Contoh: 15000">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="updateHargaJual()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl transition">
+                                Simpan Harga Baru
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL CRUD DATA KARYAWAN -->
+                <div class="glass p-6 rounded-2xl border border-blue-500/20 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <h2 class="text-lg font-bold text-blue-400 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear"></i> Kelola Data Karyawan (CRUD)
+                        </h2>
+                        <button onclick="openUserModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Tambah Karyawan
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-950/80 text-xs uppercase text-slate-400">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Nama Lengkap</th>
+                                    <th class="p-3">Username</th>
+                                    <th class="p-3">Password</th>
+                                    <th class="p-3">Role</th>
+                                    <th class="p-3 rounded-r-xl text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="divide-y divide-slate-800/50">
+                                <!-- Data User Dinamis -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-amber-500">
+                    <span class="text-xs text-slate-400 uppercase font-semibold">Harga Aktif / 1M Koin</span>
+                    <h3 id="statHargaAct" class="text-2xl font-bold text-amber-400">Rp 0</h3>
+                </div>
+                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-blue-500">
+                    <span class="text-xs text-slate-400 uppercase font-semibold">Total Koin Terinput</span>
+                    <h3 id="statTotalKoin" class="text-2xl font-bold text-blue-400">0</h3>
+                </div>
+                <div class="glass p-5 rounded-2xl space-y-1 border-l-4 border-emerald-500">
+                    <span class="text-xs text-slate-400 uppercase font-semibold">Total Pendapatan (IDR)</span>
+                    <h3 id="statTotalIDR" class="text-2xl font-bold text-emerald-400">Rp 0</h3>
+                </div>
+            </div>
+
+            <!-- INPUT FORM KARYAWAN -->
+            <div class="glass p-6 rounded-2xl space-y-4">
+                <h2 class="text-lg font-bold text-slate-200 border-b border-slate-800 pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-square-plus text-amber-400"></i> Input Pendapatan Koin Harian
+                </h2>
+                <form onsubmit="handleTransactionSubmit(event)" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Jumlah Koin</label>
+                            <input type="number" id="inputKoin" oninput="calculateLiveTotal()" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 text-slate-100 font-mono" placeholder="Masukkan jumlah koin">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Estimasi Total Pendapatan</label>
+                            <div id="liveTotalCalculated" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 text-emerald-400 font-bold font-mono">
+                                Rp 0
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-600/20">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Simpan Transaksi
+                    </button>
+                </form>
+            </div>
+
+            <!-- LOG TRANSAKSI TABLE -->
+            <div class="glass p-6 rounded-2xl space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-amber-400"></i> Riwayat Pembukuan Pendapatan
+                    </h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-950/80 text-xs uppercase text-slate-400">
+                            <tr>
+                                <th class="p-3 rounded-l-xl">Tanggal & Waktu</th>
+                                <th class="p-3">Karyawan</th>
+                                <th class="p-3">Jumlah Koin</th>
+                                <th class="p-3">Harga / 1M</th>
+                                <th class="p-3 rounded-r-xl text-right">Total Pendapatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionLogTable" class="divide-y divide-slate-800/50">
+                            <!-- Rows injected dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL FORM USER (CREATE / EDIT) -->
+    <div id="userModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="glass p-6 rounded-2xl max-w-md w-full space-y-4 border border-slate-800">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 id="modalTitle" class="font-bold text-slate-100">Tambah Karyawan Baru</h3>
+                <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form onsubmit="handleSaveUser(event)" class="space-y-3">
+                <input type="hidden" id="modalEditMode" value="false">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Nama Lengkap</label>
+                    <input type="text" id="modalNama" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Username</label>
+                    <input type="text" id="modalUsername" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Password</label>
+                    <input type="text" id="modalPassword" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase mb-1">Role</label>
+                    <select id="modalRole" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-blue-500">
+                        <option value="karyawan">Karyawan</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
